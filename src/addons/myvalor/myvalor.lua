@@ -24,6 +24,22 @@ local defaultBasicMessageDefinitions = { hasSpell = false, resolveTarget = false
 
 local lastrender = 0;
 
+local creditMap = { };
+
+-- Labyrinth of Onzozo
+creditMap[213] = {
+    ["Goblin Bouncer"] = "Goblin",
+    ["Goblin Enchanter"] = "Goblin",
+    ["Goblin Hunter"] = "Goblin",
+    ["Goblin Miner"] = "Goblin",
+    ["Goblin Poacher"] = "Goblin",
+    ["Goblin Robber"] = "Goblin",
+    ["Goblin Reaper"] = "Goblin",
+    ["Goblin Trader"] = "Goblin"
+};
+
+local currentCreditMap;
+
 ---------------------------------------------------------------------------------------------------
 -- desc: Default MyValor configuration table.
 ---------------------------------------------------------------------------------------------------
@@ -45,6 +61,15 @@ local default_config =
     }
 };
 local myvalor_config = default_config;
+
+local function unsz(s)
+    local pos = string.find(s, '\0');
+    if (pos ~= nil and pos > 0) then
+        return string.sub(s, 1, pos - 1);
+    end
+
+    return s;
+end
 
 ---------------------------------------------------------------------------------------------------
 -- func: color_entry
@@ -110,7 +135,8 @@ local function getEntityInfo(zoneid, entityid)
         entityname = 'UNKNOWN_MOB';
     end
 
-    return { id = entityid, index = entityindex, name = entityname, entitytype = entitytype, isself = isself };
+    -- Convert null terminated strings
+    return { id = entityid, index = entityindex, name = unsz(entityname), entitytype = entitytype, isself = isself };
 end
 
 local function getMob(mobindex, mobname)
@@ -120,8 +146,20 @@ local function getMob(mobindex, mobname)
 
     -- Using mob name as a way to "roll up" mobs into the same group
     -- More complicated roll up could be needed in some cases
+    local tmpMobName;
+
+    -- If we have mapping for the current zone, try to use it
+    if (currentCreditMap ~= nil) then
+        tmpMobName = currentCreditMap[mobname];
+    end
+
+    -- If no suitable mapping was found, use the mob name directly
+    if (tmpMobName == nil) then
+        tmpMobName = mobname;
+    end
+
     ----local mobkey = mobindex;
-    local mobkey = mobname;
+    local mobkey = tmpMobName;
 
     if (statusvalor.mobs == nil) then
         statusvalor.mobs = { };
@@ -131,7 +169,7 @@ local function getMob(mobindex, mobname)
     if (mobitem == nil) then
         mobitem = { };
         ----mobitem.index = mobindex;
-        mobitem.name = mobname;
+        mobitem.name = tmpMobName;
         statusvalor.mobs[mobkey] = mobitem;
     end
 
@@ -233,6 +271,7 @@ ashita.register_event('command', function(cmd, nType)
                 print('Resetting valor...');
                 statusvalor = { };
                 lastmobitem = nil;
+                currentCreditMap = creditMap[MobInfoZoneId()];
             elseif (args[2] == 'debug')  then
                 print('Debug valor...');
                 if (statusvalor.mobs ~= nil) then
@@ -269,6 +308,7 @@ ashita.register_event('incoming_packet', function(id, size, packet)
     if (id == 0x0A) then
         statusvalor = { };
         lastmobitem = nil;
+        currentCreditMap = creditMap[MobInfoZoneId()];
     end
 
     if (id == 0x0029) then -- Message Basic
@@ -296,6 +336,8 @@ ashita.register_event('load', function()
     f:SetVisibility( true );
     f:GetBackground():SetColor( myvalor_config.font.bgcolor );
     f:GetBackground():SetVisibility( myvalor_config.font.bgvisible );
+
+    currentCreditMap = creditMap[MobInfoZoneId()];
 end );
 
 ashita.register_event('unload', function()
