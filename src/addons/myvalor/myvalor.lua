@@ -191,6 +191,8 @@ local function handleMessageBasicPacket(id, size, packet)
         messageDef = defaultBasicMessageDefinitions;
     end
 
+    local targetInfo;
+
     if (messageDef.resolveTarget) then
         targetInfo = getEntityInfo(zoneid, pp.target_id);
         if (targetInfo ~= nil and targetInfo.entitytype > 0x00) then
