@@ -26,6 +26,14 @@ local lastrender = 0;
 
 local creditMap = { };
 
+-- Korroloka Tunnel
+creditMap[173] = {
+    ["Gigas Foreman"] = "Gigas",
+    ["Gigas Stonecarrier"] = "Gigas",
+    ["Gigas Stonegrinder"] = "Gigas",
+    ["Gigas Stonemason"] = "Gigas"
+};
+
 -- Labyrinth of Onzozo
 creditMap[213] = {
     ["Goblin Bouncer"] = "Goblin",
@@ -274,6 +282,7 @@ ashita.register_event('command', function(cmd, nType)
                 statusvalor = { };
                 lastmobitem = nil;
                 currentCreditMap = creditMap[MobInfoZoneId()];
+                return true;
             elseif (args[2] == 'debug')  then
                 print('Debug valor...');
                 if (statusvalor.mobs ~= nil) then
@@ -283,9 +292,12 @@ ashita.register_event('command', function(cmd, nType)
                 else
                     print('Empty!');
                 end
+                return true;
             end
         end
     end
+
+    return false;
 end);
 
 ashita.register_event('incoming_packet', function(id, size, packet)
