@@ -1,7 +1,7 @@
 
 _addon.author   = 'Eleven Pies';
 _addon.name     = 'MyValor';
-_addon.version  = '2.0.0';
+_addon.version  = '3.0.0';
 
 require 'common'
 require 'mob.mobinfo'
@@ -65,7 +65,7 @@ local default_config =
     },
     colors =
     {
-        default_color = '255,255,176'
+        default_color = 'FFFFFFB0'
     }
 };
 local myvalor_config = default_config;
@@ -84,7 +84,13 @@ end
 -- desc: Colors an entry.
 ---------------------------------------------------------------------------------------------------
 local function color_entry(s, c)
-    return string.format('\\cs(%s)%s\\cr', c, s);
+    -- v2 format
+    -- \cs(r,g,b)<text here>\cr
+    -- \cs(a,r,g,b)<text here>\cr
+    ----return string.format('\\cs(%s)%s\\cr', c, s);
+    -- v3 format
+    -- |cAARRGGBB|<text here>|r
+    return string.format('|c%s|%s|r', c, s);
 end
 
 local function findEntity(entityid)
@@ -98,7 +104,7 @@ local function findEntity(entityid)
     -- Search players
     for x = 0x400, 0x6FF do
         local ent = GetEntity(x);
-        if (ent ~= nil and ent.ServerID == entityid) then
+        if (ent ~= nil and ent.ServerId == entityid) then
             return { id = entityid, index = x, name = ent.Name };
         end
     end
@@ -128,7 +134,7 @@ local function getEntityInfo(zoneid, entityid)
             entitytype = 0x01; -- TYPE_PC
 
             -- If player, determine if player is self
-            local selftarget = AshitaCore:GetDataManager():GetParty():GetPartyMemberTargetIndex(0);
+            local selftarget = AshitaCore:GetDataManager():GetParty():GetMemberTargetIndex(0);
             if (entityindex == selftarget) then
                 isself = true;
             end
@@ -273,7 +279,7 @@ local function formatEntry(currenttime, mobName, progress, total)
 end
 
 ashita.register_event('command', function(cmd, nType)
-    local args = cmd:GetArgs();
+    local args = cmd:args();
 
     if (#args > 0 and args[1] == '/valor')  then
         if (#args > 1)  then
@@ -287,7 +293,7 @@ ashita.register_event('command', function(cmd, nType)
                 print('Debug valor...');
                 if (statusvalor.mobs ~= nil) then
                     for k, v in pairs(statusvalor.mobs) do
-                        print(tostring(k) .. ':' .. settings.JSON:encode(v));
+                        print(tostring(k) .. ':' .. ashita.settings.JSON:encode(v));
                     end
                 else
                     print('Empty!');
@@ -337,15 +343,17 @@ ashita.register_event('load', function()
     __mobinfo_load();
 
     -- Attempt to load the MyValor configuration..
-    myvalor_config = settings:load(_addon.path .. 'settings/myvalor.json') or default_config;
+    myvalor_config = ashita.settings.load(_addon.path .. 'settings/myvalor.json') or default_config;
     myvalor_config = table.merge(default_config, myvalor_config);
 
     -- Create our font object..
-    local f = AshitaCore:GetFontManager():CreateFontObject( '__myvalor_addon' );
+    local f = AshitaCore:GetFontManager():Create( '__myvalor_addon' );
     f:SetBold( false );
     f:SetColor( myvalor_config.font.color );
-    f:SetFont( myvalor_config.font.name, myvalor_config.font.size );
-    f:SetPosition( myvalor_config.font.position[1], myvalor_config.font.position[2] );
+    f:SetFontFamily(myvalor_config.font.name);
+    f:SetFontHeight(myvalor_config.font.size);
+    f:SetPositionX(myvalor_config.font.position[1]);
+    f:SetPositionY(myvalor_config.font.position[2]);
     f:SetText( '' );
     f:SetVisibility( true );
     f:GetBackground():SetColor( myvalor_config.font.bgcolor );
@@ -355,19 +363,19 @@ ashita.register_event('load', function()
 end );
 
 ashita.register_event('unload', function()
-    local f = AshitaCore:GetFontManager():GetFontObject( '__myvalor_addon' );
+    local f = AshitaCore:GetFontManager():Get( '__myvalor_addon' );
     myvalor_config.font.position = { f:GetPositionX(), f:GetPositionY() };
 
     -- Ensure the settings folder exists..
-    if (not file:dir_exists(_addon.path .. 'settings')) then
-        file:create_dir(_addon.path .. 'settings');
+    if (not ashita.file.dir_exists(_addon.path .. 'settings')) then
+        ashita.file.create_dir(_addon.path .. 'settings');
     end
 
     -- Save the configuration..
-    settings:save(_addon.path .. 'settings/myvalor.json', myvalor_config);
+    ashita.settings.save(_addon.path .. 'settings/myvalor.json', myvalor_config);
 
     -- Unload our font object..
-    AshitaCore:GetFontManager():DeleteFontObject( '__myvalor_addon' );
+    AshitaCore:GetFontManager():Delete( '__myvalor_addon' );
 end );
 
 ---------------------------------------------------------------------------------------------------
@@ -381,7 +389,7 @@ ashita.register_event('render', function()
     if ((lastrender + 0.1) < currenttime) then
         lastrender = currenttime;
 
-        local f = AshitaCore:GetFontManager():GetFontObject( '__myvalor_addon' );
+        local f = AshitaCore:GetFontManager():Get( '__myvalor_addon' );
         local e = { }; -- Valor entries..
 
         if (statusvalor.mobs ~= nil) then
